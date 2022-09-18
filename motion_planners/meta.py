@@ -19,6 +19,20 @@ def direct_path(q1, q2, extend_fn, collision_fn):
     #     path.append(q)
     # return path
 
+def direct_path_force_aware(q1, q2, extend_fn, collision_fn, torque_fn):
+    # TODO: version which checks whether the segment is valid
+    if collision_fn(q1) or collision_fn(q2):
+        return None
+    if not torque_fn(q1) or not torque_fn(q2):
+        print('torque fn failed in direct path1')
+        return None
+    path = [q1] + list(extend_fn(q1, q2))
+    if any(collision_fn(q) for q in traverse(path)):
+        return None
+    if any(not torque_fn(q) for q in traverse(path)):
+        print('torque fn failed in direct path2')
+        return None
+    return path
 
 def random_restarts(solve_fn, q1, q2, distance_fn, sample_fn, extend_fn, collision_fn,
                     restarts=RRT_RESTARTS, smooth=RRT_SMOOTHING,

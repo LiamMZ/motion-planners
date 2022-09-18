@@ -5,9 +5,11 @@ from .utils import irange, argmin, RRT_ITERATIONS
 
 class TreeNode(object):
 
-    def __init__(self, config, parent=None):
+    def __init__(self, config, parent=None, velocities=None, accelerations=None):
         self.config = config
         self.parent = parent
+        self.velocities = velocities
+        self.accelerations = accelerations
 
     #def retrace(self):
     #    if self.parent is None:
