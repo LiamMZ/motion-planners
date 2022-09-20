@@ -4,7 +4,7 @@ from itertools import takewhile
 
 from .meta import direct_path, direct_path_force_aware
 from .smoothing import smooth_path, smooth_path_old
-from .rrt import TreeNode, configs
+from .rrt import TreeNode, configs, derivatives
 from .utils import irange, argmin, RRT_ITERATIONS, RRT_RESTARTS, RRT_SMOOTHING, INF, elapsed_time, \
     negate
 
@@ -26,17 +26,17 @@ def extend_towards(tree, target, distance_fn, extend_fn, collision_fn, swap, tre
     return last, success
 
 
-def extend_towards_force_aware(tree, target, distance_fn, extend_fn, collision_fn, torque_fn, swap, tree_frequency):
+def extend_towards_force_aware(tree, target, distance_fn, extend_fn, collision_fn, torque_fn, dynam_fn, swap, tree_frequency):
     last = argmin(lambda n: distance_fn(n.config, target), tree)
     extend = list(asymmetric_extend(last.config, target, extend_fn, swap))
     safe = list(takewhile(negate(collision_fn), extend))
-    # torqueSafe = []
-    # safeDynams = []
-    # for q in safe:
-    #     vels, acc = dynam_fn(q, last.conf, last.velocities, last.accelerations)
-    #     if torque_fn(q, vels, acc):
-    #         safeDynams.append((vels, acc))
-    #         torqueSafe.append(q)
+    torqueSafe = []
+    safeDynams = []
+    for q in safe:
+        vels, acc = dynam_fn(q, last.config, last.velocities, last.accelerations)
+        if torque_fn(q, velocities=vels, accelerations=acc):
+            safeDynams.append((vels, acc))
+            torqueSafe.append(q)
     safe = list(takewhile(torque_fn, safe))
     print("number of safe extended path:", len(safe))
     for i, q in enumerate(safe):
@@ -101,7 +101,7 @@ def birrt(q1, q2, distance, sample, extend, collision,
     return None
 
 
-def rrt_connect_force_aware(q1, q2, distance_fn, sample_fn, extend_fn, collision_fn, torque_fn,
+def rrt_connect_force_aware(q1, q2, distance_fn, sample_fn, extend_fn, collision_fn, torque_fn, dynam_fn,
                 iterations=RRT_ITERATIONS, tree_frequency=1, max_time=INF):
     start_time = time.time()
     assert tree_frequency >= 1
@@ -118,22 +118,23 @@ def rrt_connect_force_aware(q1, q2, distance_fn, sample_fn, extend_fn, collision
         if swap:
             tree1, tree2 = nodes2, nodes1
 
-        last1, _ = extend_towards_force_aware(tree1, sample_fn(), distance_fn, extend_fn, collision_fn, torque_fn,
+        last1, _ = extend_towards_force_aware(tree1, sample_fn(), distance_fn, extend_fn, collision_fn, torque_fn, dynam_fn,
                                   swap, tree_frequency)
-        last2, success = extend_towards_force_aware(tree2, last1.config, distance_fn, extend_fn, collision_fn, torque_fn,
+        last2, success = extend_towards_force_aware(tree2, last1.config, distance_fn, extend_fn, collision_fn, torque_fn, dynam_fn,
                                         not swap, tree_frequency)
 
         if success:
             path1, path2 = last1.retrace(), last2.retrace()
             if swap:
                 path1, path2 = path2, path1
+            (vels, accels) = derivatives(path1[:-1] + path2[::-1])
             #print('{} iterations, {} nodes'.format(iteration, len(nodes1) + len(nodes2)))
             return configs(path1[:-1] + path2[::-1])
     return None
 
 #################################################################
 
-def birrt_force_aware(q1, q2, distance, sample, extend, collision, torque,
+def birrt_force_aware(q1, q2, distance, sample, extend, collision, torque, dynam,
           restarts=RRT_RESTARTS, smooth=RRT_SMOOTHING, max_time=INF, **kwargs):
     # TODO: move to the meta class
     start_time = time.time()
@@ -141,14 +142,14 @@ def birrt_force_aware(q1, q2, distance, sample, extend, collision, torque,
         return None
     if not torque(q1) or not torque(q2):
         return None
-    path = direct_path_force_aware(q1, q2, extend, collision, torque)
+    path = direct_path_force_aware(q1, q2, extend, collision, torque, dynam)
     if path is not None:
         return path
     for attempt in irange(restarts + 1):
         # TODO: use the restart wrapper
         if max_time <= elapsed_time(start_time):
             break
-        path = rrt_connect_force_aware(q1, q2, distance, sample, extend, collision, torque,
+        path, vels, accels  = rrt_connect_force_aware(q1, q2, distance, sample, extend, collision, torque, dynam,
                            max_time=max_time - elapsed_time(start_time), **kwargs)
         if path is not None:
             #print('{} attempts'.format(attempt))
@@ -157,4 +158,4 @@ def birrt_force_aware(q1, q2, distance, sample, extend, collision, torque,
             #return smooth_path_old(path, extend, collision, iterations=smooth)
             return smooth_path(path, extend, collision, distance_fn=distance, iterations=smooth,
                                max_time=max_time - elapsed_time(start_time))
-    return None
+    return path, vels, accels

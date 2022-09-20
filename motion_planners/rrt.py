@@ -10,6 +10,9 @@ class TreeNode(object):
         self.parent = parent
         self.velocities = velocities
         self.accelerations = accelerations
+        if velocities == None or accelerations==None:
+            self.velocities = [0.0]*len(config)
+            self.accelerations=[0.0]*len(config)
 
     #def retrace(self):
     #    if self.parent is None:
@@ -44,6 +47,11 @@ def configs(nodes):
     if nodes is None:
         return None
     return list(map(lambda n: n.config, nodes))
+
+def derivatives(nodes):
+    if nodes is None:
+        return None
+    return list(map(lambda n: n.velocities, nodes)), list(map(lambda n: n.accelerations, nodes))
 
 
 def rrt(start, goal_sample, distance, sample, extend, collision, goal_test=lambda q: False,
