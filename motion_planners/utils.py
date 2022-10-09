@@ -120,7 +120,7 @@ def compute_path_cost(path, cost_fn=get_distance):
 
 
 def remove_redundant(path, tolerance=1e-3):
-    assert path
+    assert path is not None
     new_path = [path[0]]
     for conf in path[1:]:
         difference = np.array(new_path[-1]) - np.array(conf)

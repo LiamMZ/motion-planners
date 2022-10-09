@@ -27,20 +27,9 @@ def direct_path_force_aware(q1, q2, extend_fn, collision_fn, torque_fn, dynam_fn
         print('torque fn failed in direct path1')
         return None, None, None
     path = [q1] + list(extend_fn(q1, q2))
-    vels1 = [[0.0]*len(q1)]
-    accels1 = [[0.0]*len(q1)]
-    vels2 = [[0.0]*len(q1)]
-    accels2 = [[0.0]*len(q1)]
-    for i in range(1,len(path)//2):
-        vel1, acc1 = dynam_fn(path[i], path[i-1], vels1[-1], accels1[-1])
-        vels1.append(vel1)
-        accels1.append(acc1)
-    for i in range(len(path)-2, len(path)//2 -1, -1):
-        vel2, acc2 = dynam_fn(path[i], path[i+1], vels2[0], accels2[0])
-        vels2 = [vel2] + vels2
-        accels2 = [acc2] + accels2
-    vels = vels1 + vels2
-    accels = accels1 + accels2
+    path, _, vels, accels = dynam_fn(path, len(path))
+    if path is None:
+        return None, None, None
     if any(collision_fn(q) for q in traverse(path)):
         return None, None, None
     for i in range(len(path)):
