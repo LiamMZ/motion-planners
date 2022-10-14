@@ -83,8 +83,8 @@ def safe_path_force_aware(sequence, collision, torque):
     for q in sequence:
         if collision(q):
             break
-        # if not torque(q):
-        #     break
+        if not torque(q):
+            break
         path.append(q)
     return path
 
@@ -149,7 +149,6 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
     it = 0
     while (t0 - time()) < max_time and it < max_iterations:
         do_goal = goal_n is None and (it == 0 or random() < goal_probability)
-        print(radius)
         s = goal if do_goal else sample()
         # Informed RRT*
         if informed and goal_n is not None and distance(start, s) + distance(s, goal) >= goal_n.cost:
@@ -158,7 +157,6 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
         if it % 100 == 0:
             success = goal_n is not None
             cost = goal_n.cost if success else INF
-            print(it, elapsed_time(t0), success, do_goal, cost)
         it += 1
 
         nearest = argmin(lambda n: distance(n.config, s), nodes)
@@ -173,7 +171,7 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
             goal_n = new
             goal_n.set_solution(True)
         # TODO - k-nearest neighbor version
-       
+
         neighbors = filter(lambda n: distance(
             n.config, new.config) < radius, nodes)
         nodes.append(new)
