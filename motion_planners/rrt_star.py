@@ -162,7 +162,6 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
         nearest = argmin(lambda n: distance(n.config, s), nodes)
         path = safe_path_force_aware(extend(nearest.config, s), collision, torque_fn)
         if len(path) == 0:
-            print("no path")
             continue
         new = OptimalNode(path[-1], parent=nearest, d=distance(
             nearest.config, path[-1]), path=path[:-1], iteration=it)
@@ -194,10 +193,6 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
     rrtPath = goal_n.retrace()
     path, _, vels, accels = dynam_fn(rrtPath, len(rrtPath))
     if path is None:
-        print("**************************************************************************************************Found no path in rrt_star")
-        print("**************************************************************************************************Found no path in rrt_star")
-        print("**************************************************************************************************Found no path in rrt_star")
-        print("**************************************************************************************************Found no path in rrt_star")
         return None, None, None
     for i in range(len(path)):
         if not torque_fn(path[i], velocities=vels[i], accelerations=accels[i]):
