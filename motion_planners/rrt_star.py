@@ -191,11 +191,13 @@ def rrt_star_force_aware(start, goal, distance, sample, extend, collision, torqu
         print("failed to find goal")
         return None, None, None
     rrtPath = goal_n.retrace()
-    path, _, vels, accels = dynam_fn(rrtPath, len(rrtPath))
+    path, psg, vels, accels = dynam_fn(rrtPath, len(rrtPath))
+    vels = vels[:len(path)]
+    accels = accels[:len(path)]
     if path is None:
         return None, None, None
     for i in range(len(path)):
         if not torque_fn(path[i], velocities=vels[i], accelerations=accels[i]):
             return None, None, None
-    return path, vels, accels
+    return path, vels, accels, psg
 
